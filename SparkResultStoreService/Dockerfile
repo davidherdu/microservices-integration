@@ -1,4 +1,4 @@
 FROM openjdk:17-jdk-slim
 WORKDIR /app
-COPY build/libs/spark-result-store-service-0.0.1-SNAPSHOT.jar app.jar
+COPY build/libs/SparkResultStoreService-0.0.1-SNAPSHOT.jar app.jar
 ENTRYPOINT ["java","-jar","/app/app.jar"]

@@ -44,27 +44,33 @@ services:
 
   hdfs-namenode:
     image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
-    environment:
-      - CLUSTER_NAME=test-cluster
+    container_name: namenode
+    restart: always
     ports:
-      - "9000:9000"
+      - 9870:9870
+      - 9000:9000
     volumes:
-      - hdfs-namenode:/hadoop/dfs/name
+      - hadoop_namenode:/hadoop/dfs/name
+    environment:
+      - CLUSTER_NAME=test
+    env_file:
+      - ./hadoop.env
 
   hdfs-datanode:
     image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
-    environment:
-      - CLUSTER_NAME=test-cluster
-      - CORE_CONF_fs_defaultFS=hdfs://hdfs-namenode:9000
-    depends_on:
-      - hdfs-namenode
+    container_name: datanode
+    restart: always
     volumes:
-      - hdfs-datanode:/hadoop/dfs/data
+      - hadoop_datanode:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"
+    env_file:
+      - ./hadoop.env
 
   producer:
     build: ./producer
     ports:
-      - "8080:8080"
+      - "8090:8090"
     environment:
       - SPRING_PROFILES_ACTIVE=default
     depends_on:
@@ -73,7 +79,7 @@ services:
   consumer:
     build: ./consumer
     ports:
-      - "8081:8081"
+      - "8092:8092"
     environment:
       - SPRING_PROFILES_ACTIVE=default
     depends_on:
@@ -96,5 +102,5 @@ services:
       - hdfs-datanode
 
 volumes:
-  hdfs-namenode:
-  hdfs-datanode:
+  hadoop_namenode:
+  hadoop_datanode:
