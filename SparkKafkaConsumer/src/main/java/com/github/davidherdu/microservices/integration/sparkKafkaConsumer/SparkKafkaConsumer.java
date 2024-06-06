@@ -10,6 +10,7 @@ import org.apache.spark.sql.streaming.StreamingQueryException;
 
 public class SparkKafkaConsumer {
 
+	// Add --add-exports java.base/sun.nio.ch=ALL-UNNAMED to VM arguments
     public static void main(String[] args) throws StreamingQueryException, TimeoutException {
         SparkSession spark = SparkSession.builder()
                 .appName("SparkKafkaConsumer")

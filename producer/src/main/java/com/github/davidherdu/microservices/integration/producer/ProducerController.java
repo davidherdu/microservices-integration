@@ -14,7 +14,7 @@ public class ProducerController {
     private static final String TOPIC = "example-topic";
 
     @PostMapping("/{message}")
-    public String produceMessage(@PathVariable String message) {
+    public String produceMessage(@PathVariable("message") String message) {
         kafkaTemplate.send(TOPIC, message);
         return "Message sent to Kafka topic: " + message;
     }

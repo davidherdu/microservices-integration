@@ -17,7 +17,7 @@ public class ConsumerController {
 
     @GetMapping("/hdfs")
     public String consumeFromHDFS() throws Exception {
-        String hdfsPath = "hdfs://localhost:9000/user/spark/output";
+        String hdfsPath = "hdfs-namenode://localhost:9000/user/spark/output";
         try (BufferedReader br = new BufferedReader(new InputStreamReader(Files.newInputStream(Paths.get(new URI(hdfsPath)))))) {
             return br.lines().collect(Collectors.joining("\n"));
         }
