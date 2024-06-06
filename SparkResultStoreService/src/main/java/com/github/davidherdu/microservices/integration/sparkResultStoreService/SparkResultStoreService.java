@@ -1,51 +1,46 @@
 package com.github.davidherdu.microservices.integration.sparkResultStoreService;
 
-import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.streaming.Durations;
-import org.apache.spark.streaming.api.java.JavaInputDStream;
-import org.apache.spark.streaming.api.java.JavaStreamingContext;
-import org.apache.spark.streaming.kafka010.ConsumerStrategies;
-import org.apache.spark.streaming.kafka010.KafkaUtils;
-import org.apache.spark.streaming.kafka010.LocationStrategies;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.StringDeserializer;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.streaming.StreamingQuery;
+import org.apache.spark.sql.streaming.StreamingQueryException;
 
 public class SparkResultStoreService {
-    public static void main(String[] args) throws InterruptedException {
-        SparkConf sparkConf = new SparkConf().setMaster("local[*]").setAppName("KafkaSparkResultStore");
-        JavaStreamingContext streamingContext = new JavaStreamingContext(sparkConf, Durations.seconds(10));
 
-        Map<String, Object> kafkaParams = new HashMap<>();
-        kafkaParams.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-        kafkaParams.put(ConsumerConfig.GROUP_ID_CONFIG, "spark-group");
-        kafkaParams.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        kafkaParams.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        kafkaParams.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
-        kafkaParams.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+    public static void main(String[] args) throws StreamingQueryException {
+        SparkSession spark = SparkSession.builder()
+                .appName("SparkResultStoreService")
+                .master("local[*]")
+                .getOrCreate();
 
-        JavaInputDStream<org.apache.kafka.clients.consumer.ConsumerRecord<String, String>> stream =
-                KafkaUtils.createDirectStream(
-                        streamingContext,
-                        LocationStrategies.PreferConsistent(),
-                        ConsumerStrategies.Subscribe(Collections.singletonList("example-topic"), kafkaParams)
-                );
+        // Read from Kafka
+        Dataset<Row> kafkaDF = spark
+                .readStream()
+                .format("kafka")
+                .option("kafka.bootstrap.servers", "localhost:9092")
+                .option("subscribe", "example-topic")
+                .load();
 
-        stream.map(record -> record.value()).foreachRDD(rdd -> {
-            if (!rdd.isEmpty()) {
-                JavaRDD<String> messages = rdd.map(record -> record.toString());
-                // Process messages and save to HDFS or S3
-                messages.saveAsTextFile("hdfs://localhost:9000/user/spark/output"); // HDFS
-                // messages.saveAsTextFile("s3a://your-bucket/output"); // S3
-            }
-        });
+        Dataset<Row> values = kafkaDF.selectExpr("CAST(value AS STRING)");
 
-        streamingContext.start();
-        streamingContext.awaitTermination();
+        // Write to HDFS
+        StreamingQuery hdfsQuery = values.writeStream()
+                .outputMode("append")
+                .format("parquet")
+                .option("path", "hdfs://localhost:9000/path/to/output")
+                .option("checkpointLocation", "hdfs://localhost:9000/path/to/checkpoint")
+                .start();
+
+        // Write to S3
+        StreamingQuery s3Query = values.writeStream()
+                .outputMode("append")
+                .format("parquet")
+                .option("path", "s3a://your-bucket/path/to/output")
+                .option("checkpointLocation", "s3a://your-bucket/path/to/checkpoint")
+                .start();
+
+        hdfsQuery.awaitTermination();
+        s3Query.awaitTermination();
     }
 }
