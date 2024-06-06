@@ -1,5 +1,7 @@
 package com.github.davidherdu.microservices.integration.sparkResultStoreService;
 
+import java.util.concurrent.TimeoutException;
+
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -8,7 +10,7 @@ import org.apache.spark.sql.streaming.StreamingQueryException;
 
 public class SparkResultStoreService {
 
-    public static void main(String[] args) throws StreamingQueryException {
+    public static void main(String[] args) throws StreamingQueryException, TimeoutException {
         SparkSession spark = SparkSession.builder()
                 .appName("SparkResultStoreService")
                 .master("local[*]")
