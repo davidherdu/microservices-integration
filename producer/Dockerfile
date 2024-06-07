@@ -1,4 +1,12 @@
 FROM openjdk:17-jdk-slim
-VOLUME /tmp
-COPY build/libs/producer-0.0.1-SNAPSHOT.jar app.jar
-ENTRYPOINT ["java","-jar","/app.jar"]
+
+WORKDIR /app
+
+# Copy the source code
+COPY . .
+
+# Make the entrypoint script executable
+RUN chmod +x entrypoint.sh
+
+# Set the entrypoint to the script
+ENTRYPOINT ["./entrypoint.sh"]

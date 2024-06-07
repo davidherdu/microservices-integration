@@ -2,22 +2,26 @@ version: '3.8'
 
 services:
   zookeeper:
-    image: wurstmeister/zookeeper:3.4.6
+    image: confluentinc/cp-zookeeper:7.4.4
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
     ports:
-      - "2181:2181"
+      - 2181:2181
 
   kafka:
-    image: confluentinc/cp-kafka:latest
+    image: confluentinc/cp-kafka:7.4.4
+    depends_on:
+      - zookeeper
     ports:
-      - "9092:9092"
+      - 29092:29092
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker-1:9092,PLAINTEXT_INTERNAL://localhost:19092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
 
   spark-master:
     image: bitnami/spark:3.5.1
@@ -71,7 +75,9 @@ services:
       - ./hadoop.env
 
   producer:
-    build: ./producer
+    build:
+      context: ./producer
+      dockerfile: Dockerfile
     ports:
       - "8090:8090"
     environment:
@@ -80,7 +86,9 @@ services:
       - kafka
 
   consumer:
-    build: ./consumer
+    build:
+      context: ./consumer
+      dockerfile: Dockerfile
     ports:
       - "8092:8092"
     environment:
@@ -89,14 +97,18 @@ services:
       - hdfs-namenode
 
   spark-kafka-consumer:
-    build: ./SparkKafkaConsumer
+    build: 
+      context: ./SparkKafkaConsumer
+      dockerfile: Dockerfile
     depends_on:
       - kafka
       - spark-master
       - spark-worker
 
   spark-result-store-service:
-    build: ./SparkResultStoreService
+    build: 
+      context: ./SparkResultStoreService
+      dockerfile: Dockerfile
     depends_on:
       - kafka
       - spark-master

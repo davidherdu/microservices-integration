@@ -1,4 +1,13 @@
 FROM openjdk:17-jdk-slim
+
 WORKDIR /app
-COPY build/libs/SparkResultStoreService-0.0.1-SNAPSHOT.jar app.jar
-ENTRYPOINT ["java","-jar","/app/app.jar"]
+
+# Copy the source code
+COPY . .
+
+# Make the entrypoint script executable
+RUN chmod +x entrypoint.sh
+
+# Set the entrypoint to the script
+ENTRYPOINT ["./entrypoint.sh"]
+
